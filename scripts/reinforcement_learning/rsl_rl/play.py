@@ -9,6 +9,7 @@
 
 import argparse
 import sys
+import csv
 
 from isaaclab.app import AppLauncher
 
@@ -174,6 +175,26 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     dt = env.unwrapped.step_dt
 
+    # ---------- NEW: setup for saving joint positions (radians) ----------
+    # File where we'll store joint positions (not raw actions)
+    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_12-13-25_O5_10sec_random.csv"
+
+    # Number of joints we care about (first 8 from env 0)
+    num_joints = 8
+
+    # Default joint positions in radians:
+    # joint 0,1 -> 0.0 rad; joints 2..7 -> 0.35 rad
+    # This will be used as q_default in: q = q_default + 0.5 * action
+    q_default_list = [0.0, 0.0] + [0.35] * (num_joints - 2)
+
+    # Create/overwrite file and write header once
+    os.makedirs(os.path.dirname(actionFileName), exist_ok=True)
+    with open(actionFileName, "w", newline="") as f:
+        writer = csv.writer(f)
+        header = [f"joint_{i}_pos_rad" for i in range(num_joints)]
+        writer.writerow(header)
+    # --------------------------------------------------------------------
+
     # reset environment
     obs = env.get_observations()
     timestep = 0
@@ -184,8 +205,26 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         with torch.inference_mode():
             # agent stepping
             actions = policy(obs)
+            # actions = actionsList[index] -- create actions list corresponding to the gait, scale and shift
+            # Write the list of actions to a file - actions is a torch tensor
+            # deploy at the same hz as the physical robot, and angle scaling/shifting, joint order
+            
             # env stepping
             obs, _, _, _ = env.step(actions)
+
+            # Access the underlying robot in the scene
+            robot = env.unwrapped.scene["robot"]  # adjust name if needed
+
+            # Get the joint target positions that Isaac is actually using
+            # This is a tensor of shape [num_envs, num_joints]
+            #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
+            joint_targets = robot.data.joint_pos[0, :8] #- real value
+            joint_positions_list = [float(x.item()) for x in joint_targets]
+
+            with open(actionFileName, "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(joint_positions_list)
+
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video
