@@ -103,7 +103,7 @@ class PhysxCfg:
         the range ``[min_velocity_iteration_count, max_velocity_iteration_count]``.
     """
 
-    enable_ccd: bool = False
+    enable_ccd: bool = False ###changed from false
     """Enable a second broad-phase pass that makes it possible to prevent objects from tunneling through each other.
     Default is False."""
 

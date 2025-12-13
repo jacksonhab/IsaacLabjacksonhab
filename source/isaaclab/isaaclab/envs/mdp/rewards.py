@@ -195,11 +195,13 @@ def joint_pos_limits(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEn
     asset: Articulation = env.scene[asset_cfg.name]
     # compute out of limits constraints
     out_of_limits = -(
+        
         asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
     ).clip(max=0.0)
     out_of_limits += (
         asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
     ).clip(min=0.0)
+    #print(asset.data.soft_joint_pos_limits)
     return torch.sum(out_of_limits, dim=1)
 
 
@@ -312,6 +314,7 @@ def track_lin_vel_xy_exp(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_lin_vel_b[:, :2]),
         dim=1,
     )
+    #print(asset.data.root_lin_vel_b[:, :2])
     return torch.exp(-lin_vel_error / std**2)
 
 
