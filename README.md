@@ -6,7 +6,7 @@ Important to note that I used the flat environment for this project, not the rou
 
 They are listed by importance:
 1. Import my hexapod USD file and configure the actuator and model parameters.
-       \n**Contains the min velocities, default configuration, and other simulation parameters.**
+       **Contains the min velocities, default configuration, and other simulation parameters.**
    File path:
    
 2. Define the hexapod flat environment. This file is like the basis of my simulation and contains the most important and impactful parameters.
