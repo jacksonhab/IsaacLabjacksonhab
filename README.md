@@ -32,7 +32,7 @@ Important to note that I used the flat environment for this project, not the rou
    
    File path: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/hexapod/flat_env_cfg.py](source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/hexapod/flat_env_cfg.py)
    
-   **Supplementary Materials (Provided by Isaac Lab):**
+   *Supplementary Materials (Provided by Isaac Lab):*
    
    Contains the default rewards, reset, termination, and event parameters: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py](source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py)
    
