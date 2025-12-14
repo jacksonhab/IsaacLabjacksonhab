@@ -212,6 +212,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             # env stepping
             obs, _, _, _ = env.step(actions)
 
+            #_________Added__________#
             # Access the underlying robot in the scene
             robot = env.unwrapped.scene["robot"]  # adjust name if needed
 
@@ -224,6 +225,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             with open(actionFileName, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(joint_positions_list)
+            #__________________________#
 
         if args_cli.video:
             timestep += 1
