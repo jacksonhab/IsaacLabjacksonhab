@@ -1,7 +1,7 @@
 # ME 556 Project
 This is a branch of the git repository that I used in completing my Reinforcement Learning project. This contains all of the code that I used to complete this project, including the codebase provided by Isaac Lab already.
 
-### Links to Videos
+### {Links to Videos}
 [Best RL Physical Implementation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQAeYNmWCQzMTahTQsdmVAdKAQkPkIFLeltMwkb_PjB7IHI?e=RSsLBw)
 
 [Okay Physical Implemenatation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQDIFSKep0rpS45m5edNOyKRAc4CkiYdp70LiXwo_b9croo?e=00Znth)
