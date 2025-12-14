@@ -33,7 +33,7 @@ They are listed by importance:
    
    *Modified portions are noted.*
    
-   File path: scripts/reinforcement_learning/rsl_rl/play.py
+   File path: [scripts/reinforcement_learning/rsl_rl/play.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/855536613c999da58ee1b36d84e55b070c653feb/scripts/reinforcement_learning/rsl_rl/train.py)
 
 
 
