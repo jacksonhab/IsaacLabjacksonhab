@@ -17,7 +17,7 @@ They are listed by importance:
    
    File path: 
    
-   #Supplementary Materials (Provided by Isaac Lab):
+   #Supplementary Materials (Provided by Isaac Lab):#
    
    Contains the default rewards, reset, termination, and event parameters:
    
