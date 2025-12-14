@@ -11,7 +11,7 @@ They are listed by importance:
    
    File path:[source/isaaclab_assets/isaaclab_assets/robots/hexapod.py](source/isaaclab_assets/isaaclab_assets/robots/hexapod.py)
    
-3. Define the hexapod flat environment. This file is like the basis of my simulation and contains the most important and impactful parameters.
+2. Define the hexapod flat environment. This file is the basis of my simulation and contains the most important and impactful parameters.
    
    *Contains various simulation parameters. These include: overwritten reward weights, termination parameters, reset parameters, environment stepping, play parameters, observations, and various other environment tweaks.*
    
@@ -23,25 +23,25 @@ They are listed by importance:
    
    Contains the defined reward funtions that are called in the above two files. Where reward equations are defined: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/mdp/rewards.py](source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/mdp/rewards.py) and [source/isaaclab/isaaclab/envs/mdp/rewards.py](source/isaaclab/isaaclab/envs/mdp/rewards.py)
    
-5. Define the simulation learning parameters. These values remained relatively untouched.
+3. Define the simulation learning parameters. These values remained relatively untouched.
    
    *These configure the policy and learning rate.*
    
    File path: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/hexapod/agents/rsl_rl_ppo_cfg.py](source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/hexapod/agents/rsl_rl_ppo_cfg.py)
    
-7. Modified Play file that steps through simulation. This was modified to enable saving the position commands of the simulated robot and saving to a CSV file.
+4. Modified Play file that steps through simulation. This was modified to enable saving the position commands of the simulated robot and saving to a CSV file.
    
    *Modified portions are noted.*
    
    File path: [scripts/reinforcement_learning/rsl_rl/play.py](scripts/reinforcement_learning/rsl_rl/play.py)
 
-8. Train File. This was not modified and is used to run the RL parameters.
+5. Train File. This was not modified and is used to run the RL parameters.
 
    File path: [scripts/reinforcement_learning/rsl_rl/train.py](scripts/reinforcement_learning/rsl_rl/train.py)
 
 
 
-## Below is the defaul README from Isaac Lab for Reference
+## Below is the defaul README from Isaac Lab for Reference -- Not Necessary for this Project
 
 ![Isaac Lab](docs/source/_static/isaaclab.jpg)
 
