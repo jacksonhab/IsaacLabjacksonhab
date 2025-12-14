@@ -1,3 +1,33 @@
+# ME 556 Project
+This is a branch of the git repository that I used in completing my Reinforcement Learning project. This contains all of the code that I used to complete this project, including the codebase provided by Isaac Lab already.
+
+Below is a list of the file paths to the important files that I used to complete this project. The files are where I defined my models, set reward functions, and defined the environment parameters.
+Important to note that I used the flat environment for this project, not the rough environment.
+
+They are listed by importance:
+1. Import my hexapod USD file and configure the actuator and model parameters
+       *Contains the min velocities, default configuration, and other simulation parameters
+   File path:
+   
+2. Define the hexapod flat environment. This file is like the basis of my simulation and contains the most important and impactful parameters.
+       *Contains various simulation parameters. These include: overwritten reward weights, termination parameters, reset parameters, environment stepping, play parameters, observations, and various other environment tweaks.
+   File path: 
+   
+   #Supplementary Materials (Provided by Isaac Lab):
+       Contains the default rewards, reset, termination, and event parameters: 
+       Contains the defined reward funtions that are called in the above two files. Where reward equations are defined: 
+   
+3. Define the simulation learning parameters. These values remained relatively untouched.
+       *These configure the policy and learning rate.
+   File path: 
+   
+4. Modified Play file that steps through simulation. This was modified to enable saving the position commands of the simulated robot and saving to a CSV file.
+       *Modified portions are noted.
+   File path: 
+
+
+
+
 ![Isaac Lab](docs/source/_static/isaaclab.jpg)
 
 ---
