@@ -9,7 +9,7 @@ They are listed by importance:
 
    *Contains the min velocities, default configuration, and other simulation parameters.*
    
-   File path:[source/isaaclab_assets/isaaclab_assets/robots/hexapod.py](source/isaaclab_assets/isaaclab_assets/robots/hexapod.py)
+   File path: [source/isaaclab_assets/isaaclab_assets/robots/hexapod.py](source/isaaclab_assets/isaaclab_assets/robots/hexapod.py)
    
 2. Define the hexapod flat environment. This file is the basis of my simulation and contains the most important and impactful parameters.
    
