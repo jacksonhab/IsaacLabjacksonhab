@@ -39,6 +39,9 @@ They are listed by importance:
 
    File path: [scripts/reinforcement_learning/rsl_rl/train.py](scripts/reinforcement_learning/rsl_rl/train.py)
 
+#MATLAB file for physical implementation
+[forwardHexapodRL.m](forwardHexapodRL.m)
+
 
 
 ## Below is the defaul README from Isaac Lab for Reference -- Not Necessary for this Project
