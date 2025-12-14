@@ -5,8 +5,8 @@ Below is a list of the file paths to the important files that I used to complete
 Important to note that I used the flat environment for this project, not the rough environment.
 
 They are listed by importance:
-1. Import my hexapod USD file and configure the actuator and model parameters
-       **Contains the min velocities, default configuration, and other simulation parameters.**
+1. Import my hexapod USD file and configure the actuator and model parameters.
+       \n**Contains the min velocities, default configuration, and other simulation parameters.**
    File path:
    
 2. Define the hexapod flat environment. This file is like the basis of my simulation and contains the most important and impactful parameters.
