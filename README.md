@@ -1,24 +1,25 @@
 # ME 556 Project
 This is a branch of the git repository that I used in completing my Reinforcement Learning project. This contains all of the code that I used to complete this project, including the codebase provided by Isaac Lab already.
 
-### {Links to Videos}
-[Best RL Physical Implementation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQAeYNmWCQzMTahTQsdmVAdKAQkPkIFLeltMwkb_PjB7IHI?e=RSsLBw)
+## Links to Videos
+-[Best RL Physical Implementation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQAeYNmWCQzMTahTQsdmVAdKAQkPkIFLeltMwkb_PjB7IHI?e=RSsLBw)
 
-[Okay Physical Implemenatation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQDIFSKep0rpS45m5edNOyKRAc4CkiYdp70LiXwo_b9croo?e=00Znth)
+-[Okay Physical Implemenatation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQDIFSKep0rpS45m5edNOyKRAc4CkiYdp70LiXwo_b9croo?e=00Znth)
 
-[Best RL Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQBJx7hzorWjTYKtImQS18FwAVfj6MrG6md5e46kBhr8kX0?e=Zmw0a1)
+-[Best RL Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQBJx7hzorWjTYKtImQS18FwAVfj6MrG6md5e46kBhr8kX0?e=Zmw0a1)
 
 
 *Some examples of bad runs*
-*[Bad Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQCKgBODJJWnSpc5MgV1qMM3AUIlhIOr7HGhAfbNqO2M9zU?e=CkxUzX)*
-*[Really Bad Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/bqc5667_psu_edu/IQCPey6Aa_kIS5jtH5gQI50LAapM5gpLca58eU4ym6fjp_w?e=UAAxy2)*
+-*[Bad Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQCKgBODJJWnSpc5MgV1qMM3AUIlhIOr7HGhAfbNqO2M9zU?e=CkxUzX)*
+
+-*[Really Bad Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/bqc5667_psu_edu/IQCPey6Aa_kIS5jtH5gQI50LAapM5gpLca58eU4ym6fjp_w?e=UAAxy2)*
 
 Below is a list of the file paths to the important files that I used to complete this project. The files are where I defined my models, set reward functions, and defined the environment parameters.
 Important to note that I used the flat environment for this project, not the rough environment.
 
-### MATLAB file for physical implementation: [forwardHexapodRL.m](forwardHexapodRL.m)
+## MATLAB file for physical implementation: [forwardHexapodRL.m](forwardHexapodRL.m)
 
-### RL Files [listed by importance]:
+## RL Files [listed by importance]:
 1. Import my hexapod USD file and configure the actuator and model parameters.
 
    *Contains the min velocities, default configuration, and other simulation parameters.*
