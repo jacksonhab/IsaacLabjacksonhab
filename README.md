@@ -3,8 +3,11 @@ This is a branch of the git repository that I used in completing my Reinforcemen
 
 ### Links to Videos
 [Best RL Physical Implementation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQAeYNmWCQzMTahTQsdmVAdKAQkPkIFLeltMwkb_PjB7IHI?e=RSsLBw)
+
 [Okay Physical Implemenatation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQDIFSKep0rpS45m5edNOyKRAc4CkiYdp70LiXwo_b9croo?e=00Znth)
+
 [Best RL Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQBJx7hzorWjTYKtImQS18FwAVfj6MrG6md5e46kBhr8kX0?e=Zmw0a1)
+
 
 *Some examples of bad runs*
 *[Bad Simulation](https://pennstateoffice365-my.sharepoint.com/:v:/g/personal/jrh6552_psu_edu/IQCKgBODJJWnSpc5MgV1qMM3AUIlhIOr7HGhAfbNqO2M9zU?e=CkxUzX)*
