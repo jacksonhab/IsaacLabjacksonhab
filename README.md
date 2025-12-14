@@ -9,31 +9,31 @@ They are listed by importance:
 
    *Contains the min velocities, default configuration, and other simulation parameters.*
    
-   File path:
+   File path:[source/isaaclab_assets/isaaclab_assets/robots/hexapod.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/855536613c999da58ee1b36d84e55b070c653feb/source/isaaclab_assets/isaaclab_assets/robots/hexapod.py)
    
 3. Define the hexapod flat environment. This file is like the basis of my simulation and contains the most important and impactful parameters.
    
    *Contains various simulation parameters. These include: overwritten reward weights, termination parameters, reset parameters, environment stepping, play parameters, observations, and various other environment tweaks.*
    
-   File path: 
+   File path: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/hexapod/flat_env_cfg.py](source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/hexapod/flat_env_cfg.py)
    
    **Supplementary Materials (Provided by Isaac Lab):**
    
-   Contains the default rewards, reset, termination, and event parameters:
+   Contains the default rewards, reset, termination, and event parameters: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/855536613c999da58ee1b36d84e55b070c653feb/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py)
    
-   Contains the defined reward funtions that are called in the above two files. Where reward equations are defined: 
+   Contains the defined reward funtions that are called in the above two files. Where reward equations are defined: [source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/mdp/rewards.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/46f1b75fef27355daa65084341a3b34967a107d6/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/mdp/rewards.py) and [source/isaaclab/isaaclab/envs/mdp/rewards.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/46f1b75fef27355daa65084341a3b34967a107d6/source/isaaclab/isaaclab/envs/mdp/rewards.py)
    
 5. Define the simulation learning parameters. These values remained relatively untouched.
    
    *These configure the policy and learning rate.*
    
-   File path: 
+   File path: [
    
 7. Modified Play file that steps through simulation. This was modified to enable saving the position commands of the simulated robot and saving to a CSV file.
    
    *Modified portions are noted.*
    
-   File path: [scripts/reinforcement_learning/rsl_rl/play.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/855536613c999da58ee1b36d84e55b070c653feb/scripts/reinforcement_learning/rsl_rl/train.py)
+   File path: [scripts/reinforcement_learning/rsl_rl/play.py](https://github.com/jacksonhab/IsaacLabjacksonhab/blob/855536613c999da58ee1b36d84e55b070c653feb/scripts/reinforcement_learning/rsl_rl/play.py)
 
 
 
