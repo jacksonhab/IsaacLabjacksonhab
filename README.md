@@ -45,7 +45,7 @@ Important to note that I used the flat environment for this project, not the rou
 
 
 
-## Below is the defaul README from Isaac Lab for Reference -- Not Necessary for this Project
+## Below is the default README from Isaac Lab for Reference -- Not Necessary for this Project
 
 ![Isaac Lab](docs/source/_static/isaaclab.jpg)
 
