@@ -39,7 +39,7 @@ They are listed by importance (RL files):
 
    File path: [scripts/reinforcement_learning/rsl_rl/train.py](scripts/reinforcement_learning/rsl_rl/train.py)
 
-# MATLAB file for physical implementation
+### MATLAB file for physical implementation
 [forwardHexapodRL.m](forwardHexapodRL.m)
 
 
