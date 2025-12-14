@@ -6,32 +6,32 @@ Important to note that I used the flat environment for this project, not the rou
 
 They are listed by importance:
 1. Import my hexapod USD file and configure the actuator and model parameters.
-   
-       **Contains the min velocities, default configuration, and other simulation parameters.**
+
+   *Contains the min velocities, default configuration, and other simulation parameters.*
    
    File path:
    
 3. Define the hexapod flat environment. This file is like the basis of my simulation and contains the most important and impactful parameters.
    
-       **Contains various simulation parameters. These include: overwritten reward weights, termination parameters, reset parameters, environment stepping, play parameters, observations, and various other environment tweaks.**
+   *Contains various simulation parameters. These include: overwritten reward weights, termination parameters, reset parameters, environment stepping, play parameters, observations, and various other environment tweaks.*
    
    File path: 
    
    #Supplementary Materials (Provided by Isaac Lab):
    
-       Contains the default rewards, reset, termination, and event parameters:
+   Contains the default rewards, reset, termination, and event parameters:
    
-       Contains the defined reward funtions that are called in the above two files. Where reward equations are defined: 
+   Contains the defined reward funtions that are called in the above two files. Where reward equations are defined: 
    
 5. Define the simulation learning parameters. These values remained relatively untouched.
    
-       **These configure the policy and learning rate.**
+   *These configure the policy and learning rate.*
    
    File path: 
    
 7. Modified Play file that steps through simulation. This was modified to enable saving the position commands of the simulated robot and saving to a CSV file.
    
-       **Modified portions are noted.**
+   *Modified portions are noted.*
    
    File path: 
 
