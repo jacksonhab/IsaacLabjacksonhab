@@ -33,7 +33,7 @@ They are listed by importance:
    
    *Modified portions are noted.*
    
-   File path: 
+   File path: scripts/reinforcement_learning/rsl_rl/play.py
 
 
 
