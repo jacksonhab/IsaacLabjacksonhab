@@ -17,7 +17,8 @@ This is a branch of the git repository that I used in completing my Reinforcemen
 Below is a list of the file paths to the important files that I used to complete this project. The files are where I defined my models, set reward functions, and defined the environment parameters.
 Important to note that I used the flat environment for this project, not the rough environment.
 
-## MATLAB file for physical implementation: [forwardHexapodRL.m](forwardHexapodRL.m)
+## MATLAB file for physical implementation: 
+- [forwardHexapodRL.m](forwardHexapodRL.m)
 
 ## RL Files [listed by importance]:
 1. Import my hexapod USD file and configure the actuator and model parameters.
