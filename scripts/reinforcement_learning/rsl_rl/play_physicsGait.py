@@ -175,11 +175,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
 
     dt = env.unwrapped.step_dt
-    device = env.unwrapped.device
+    
     
     # ---------- NEW: setup for saving joint positions (radians) ----------
     # File where we'll store joint positions (not raw actions)
-    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_5-3-26_actiontest.csv"
+    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_1-15-26_test.csv"
     commandFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_command_1-2-26_test.csv"
     # Number of joints we care about (first 8 from env 0)
     num_joints = 8
@@ -212,7 +212,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         print("[WARN] Couldn't print robot joint names:", e)
     
     # open file to track displacement
-    disp_log_path = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/sim_displacement_log_5-5-26_test.csv"
+    disp_log_path = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/sim_displacement_log_1-22-26_test.csv"
     os.makedirs(os.path.dirname(disp_log_path), exist_ok=True)
 
     with open(disp_log_path, "w", newline="") as d:
@@ -276,14 +276,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     log_f = open(logFileName, "a", newline="")
     writer = csv.writer(log_f)
     """
-    reward_sum_per_env = torch.zeros(env.num_envs, device=device, dtype=torch.float32)
-
-    rm = getattr(env.unwrapped, "reward_manager", None)
-    term_names = list(rm.active_terms) if rm is not None else []
-    reward_term_sums = {
-        name: torch.zeros(env.num_envs, device=device, dtype=torch.float32)
-        for name in term_names
-    }
 
     # reset environment
     obs = env.get_observations()
@@ -323,42 +315,28 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             """
 
             # env stepping
-            obs, rew, _, _ = env.step(actions)
+            obs, reward, _, _ = env.step(actions) #will return the computed reward as a float - set environments to ten and average across (or set higher)
+
+            #sum the rewards over the timesteps and average everything together at the end
 
             # Access the underlying robot in the scene
             robot = env.unwrapped.scene["robot"]  # adjust name if needed
 
-            reward_sum_per_env += rew
             
-            rm = getattr(env.unwrapped, "reward_manager", None)
-            if rm is not None:
-                step_reward_terms = rm._step_reward  # [num_envs, num_terms]
-
-                for term_idx, name in enumerate(term_names):
-                    reward_term_sums[name] += step_reward_terms[:, term_idx] * dt
-
             # Get the joint target positions that Isaac is actually using
             # This is a tensor of shape [num_envs, num_joints]
             #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
             # actual joint positions (env 0, first 8)
-            #act = robot.data.joint_pos[0, :num_joints].detach().cpu().numpy().tolist()
+            act = robot.data.joint_pos[0, :num_joints].detach().cpu().numpy().tolist()
 
-            #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
+            joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
 
-            #joint_positions_list = [float(x.item()) for x in joint_targets]
-
-            #with open(actionFileName, "a", newline="") as f:
-            #    writer = csv.writer(f)
-            #    writer.writerow(joint_positions_list)
-            
-            # actual joint positions (env 0, first 8)
-            joint_positions = robot.data.joint_pos[0, :num_joints]
-            joint_positions_list = joint_positions.detach().cpu().numpy().tolist()
+            joint_positions_list = [float(x.item()) for x in joint_targets]
 
             with open(actionFileName, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(joint_positions_list)
-
+            
             # -----Added to track the displacement of robot --------------
             # ---- step / cycle bookkeeping (warmup-aware) ----
             step = timestep  # raw sim step (includes warmup)
@@ -404,14 +382,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
-
-    print("\n===== REWARD SUMMARY =====")
-    print("reward_sum_per_env:", reward_sum_per_env.detach().cpu().numpy())
-    print("\n===== INDIVIDUAL REWARD TERM SUMMARY =====")
-    for name in term_names:
-        print(f"{name}:")
-        print("  sum_per_env:", reward_term_sums[name].detach().cpu().numpy())
-
 
     # close the simulator
     env.close()

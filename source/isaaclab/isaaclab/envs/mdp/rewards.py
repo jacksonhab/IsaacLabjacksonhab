@@ -73,6 +73,10 @@ Root penalties.
 """
 
 
+
+## ----------------------------------------------------
+# Original penalties:
+
 def lin_vel_z_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize z-axis base linear velocity using L2 squared kernel."""
     # extract the used quantities (to enable type-hinting)

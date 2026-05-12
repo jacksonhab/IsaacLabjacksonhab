@@ -175,12 +175,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
 
     dt = env.unwrapped.step_dt
-    device = env.unwrapped.device
     
+    """
     # ---------- NEW: setup for saving joint positions (radians) ----------
     # File where we'll store joint positions (not raw actions)
-    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_5-3-26_actiontest.csv"
-    commandFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_command_1-2-26_test.csv"
+    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_12-17-25.csv"
+    commandFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_command_12-17-25.csv"
     # Number of joints we care about (first 8 from env 0)
     num_joints = 8
 
@@ -196,58 +196,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         header = [f"joint_{i}_pos_rad" for i in range(num_joints)]
         writer.writerow(header)
 
-    #os.makedirs(os.path.dirname(commandFileName), exist_ok=True)
-    #with open(commandFileName, "w", newline="") as f:
-    #    writer = csv.writer(f)
-    #    header = [f"joint_{i}_pos_rad" for i in range(num_joints)]
-    #    writer.writerow(header)
-
-    # ---- sanity prints ----
-    print("[INFO] sim dt:", env.unwrapped.step_dt)
-    try:
-        robot = env.unwrapped.scene["robot"]
-        if hasattr(robot.data, "joint_names"):
-            print("[INFO] robot joint names (first 8):", robot.data.joint_names[:8])
-    except Exception as e:
-        print("[WARN] Couldn't print robot joint names:", e)
-    
-    # open file to track displacement
-    disp_log_path = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/sim_displacement_log_5-5-26_test.csv"
-    os.makedirs(os.path.dirname(disp_log_path), exist_ok=True)
-
-    with open(disp_log_path, "w", newline="") as d:
-        w = csv.writer(d)
-        w.writerow([
-            "step",
-            "t_s",
-            "cycle_num",
-            "cycle_step",
-            "gait_idx",
-            "x_w", "y_w", "z_w",
-            "dx", "dy", "dz",
-            "forward_disp_x",
-        ])
-
-    # reset environment
-    obs = env.get_observations()
-    timestep = 0
-
-    # capture initial base position for env 0
-    start_pos = robot.data.root_pos_w.clone()  # [num_envs, 3]
-
-    try:
-        if hasattr(env, "num_actions"):
-            print("[INFO] action_dim:", env.num_actions)
-        else:
-            print("[INFO] action_dim:", int(env.action_space.shape[0]))
-    except Exception as e:
-        print("[WARN] Couldn't print action dim:", e)
-    # -----------------------
+    os.makedirs(os.path.dirname(commandFileName), exist_ok=True)
+    with open(commandFileName, "w", newline="") as f:
+        writer = csv.writer(f)
+        header = [f"joint_{i}_pos_rad" for i in range(num_joints)]
+        writer.writerow(header)
     # --------------------------------------------------------------------
-    
     """
+    
     # ---------- Logging setup ----------
-    logFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/Hexapod_sin_cmd_vs_actual_stiff20.19_12-17-25.csv"
+    logFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/Hexapod_sin_cmdvsact_stiff37_damp.32_step_amp0.3_1-9-26.csv"
     num_joints = 8
 
     q_default_list = [0.0, 0.0] + [0.35] * (num_joints - 2)
@@ -264,26 +222,18 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # ---------- Sine command parameters ----------
     A = 0.3          # amplitude in radians (keep <= your joint limits!)
-    freq_hz = 1.0    # sine frequency (Hz)
+    freq_hz = 4.0    # sine frequency (Hz)
     phase = 0.0       # phase (rad)
     action_scale = 0.5  # from your comment: q = q_default + 0.5 * action
     t = 0.0
     # which joints to excite (example: first motor only)
     excite = torch.zeros(num_joints, device=env.device, dtype=torch.float32)
-    excite[[1, 2, 5]] = 1.0 # set to 1.0 for joints you want to move
+    excite[[1, 3, 6]] = 1.0 # set to 1.0 for joints you want to move
     # e.g., excite[:] = 1.0 to move all first 8 joints
     # --------------------------------------------
     log_f = open(logFileName, "a", newline="")
     writer = csv.writer(log_f)
-    """
-    reward_sum_per_env = torch.zeros(env.num_envs, device=device, dtype=torch.float32)
-
-    rm = getattr(env.unwrapped, "reward_manager", None)
-    term_names = list(rm.active_terms) if rm is not None else []
-    reward_term_sums = {
-        name: torch.zeros(env.num_envs, device=device, dtype=torch.float32)
-        for name in term_names
-    }
+    
 
     # reset environment
     obs = env.get_observations()
@@ -294,19 +244,21 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            actions = policy(obs) #-- uncomment for normal running
+            # actions = policy(obs) #-- uncomment for normal running
             # actions = actionsList[index] -- create actions list corresponding to the gait, scale and shift
             # Write the list of actions to a file - actions is a torch tensor
             # deploy at the same hz as the physical robot, and angle scaling/shifting, joint order
             # Build commanded joint positions (rad)
-            """
-            # sin_val = np.sin(freq_hz * t + phase) # 
+            
+            # sin_val = -np.sin(freq_hz * t + phase) # 
             # q_cmd = q_default + (A * sin_val) * excite  # shape [8]
+
+            q_cmd = q_default + A/2 * excite    # step response - 0.3 rad (in negative direction which follows experimentation)
 
             # Convert commanded joint positions -> actions
             # q = q_default + action_scale * action  => action = (q_cmd - q_default)/action_scale
-            # action_8 = (q_cmd - q_default) / action_scale
-            # action_8 = torch.clamp(action_8, -1.0, 1.0)
+            action_8 = (q_cmd - q_default) / action_scale
+            action_8 = torch.clamp(action_8, -1.0, 1.0)
 
             # Build full action tensor: [num_envs, action_dim]
             # Get action dimension robustly (works with the wrapper)
@@ -320,77 +272,32 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
             actions = torch.zeros((env.num_envs, action_dim), device=device, dtype=torch.float32)
             actions[:, :num_joints] = action_8
-            """
+            
 
             # env stepping
-            obs, rew, _, _ = env.step(actions)
+            obs, _, _, _ = env.step(actions)
 
             # Access the underlying robot in the scene
             robot = env.unwrapped.scene["robot"]  # adjust name if needed
 
-            reward_sum_per_env += rew
             
-            rm = getattr(env.unwrapped, "reward_manager", None)
-            if rm is not None:
-                step_reward_terms = rm._step_reward  # [num_envs, num_terms]
-
-                for term_idx, name in enumerate(term_names):
-                    reward_term_sums[name] += step_reward_terms[:, term_idx] * dt
-
+            
             # Get the joint target positions that Isaac is actually using
             # This is a tensor of shape [num_envs, num_joints]
-            #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
+            # joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
             # actual joint positions (env 0, first 8)
-            #act = robot.data.joint_pos[0, :num_joints].detach().cpu().numpy().tolist()
+            act = robot.data.joint_pos[0, :num_joints].detach().cpu().numpy().tolist()
 
-            #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
-
-            #joint_positions_list = [float(x.item()) for x in joint_targets]
-
-            #with open(actionFileName, "a", newline="") as f:
-            #    writer = csv.writer(f)
-            #    writer.writerow(joint_positions_list)
+            # commanded joint targets if available, otherwise log the q_cmd you computed
+            if hasattr(robot.data, "joint_pos_target"):
+                cmd = robot.data.joint_pos_target[0, :num_joints].detach().cpu().numpy().tolist()
+            else:
+                cmd = q_cmd.detach().cpu().numpy().tolist()
             
-            # actual joint positions (env 0, first 8)
-            joint_positions = robot.data.joint_pos[0, :num_joints]
-            joint_positions_list = joint_positions.detach().cpu().numpy().tolist()
-
-            with open(actionFileName, "a", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(joint_positions_list)
-
-            # -----Added to track the displacement of robot --------------
-            # ---- step / cycle bookkeeping (warmup-aware) ----
-            step = timestep  # raw sim step (includes warmup)
-
-            active_step = ""
-            cycle_num = ""
-            cycle_step = ""
-            gait_idx = ""
-            # current base position in world
-            t_s = step * dt
-
-            pos = robot.data.root_pos_w
-            dpos = pos - start_pos
-
-            x, y, z = pos[0].detach().cpu().numpy().tolist()
-            dx, dy, dz = dpos[0].detach().cpu().numpy().tolist()
-            forward_disp_x = dx
-
-            with open(disp_log_path, "a", newline="") as d:
-                w = csv.writer(d)
-                w.writerow([
-                    step,
-                    t_s,
-                    cycle_num,
-                    cycle_step,
-                    gait_idx,
-                    x, y, z,
-                    dx, dy, dz,
-                    forward_disp_x,
-                ])
-
-            
+            writer.writerow([t] + cmd + act)
+            # optional: flush occasionally so you don't lose data on crash
+            if timestep % 20 == 0:
+                log_f.flush()
 
         if args_cli.video:
             timestep += 1
@@ -398,20 +305,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             if timestep == args_cli.video_length:
                 break
 
-        # t += dt #COMMENT THIS OUT WHEN NOT USING
+        t += dt #COMMENT THIS OUT WHEN NOT USING
 
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
-
-    print("\n===== REWARD SUMMARY =====")
-    print("reward_sum_per_env:", reward_sum_per_env.detach().cpu().numpy())
-    print("\n===== INDIVIDUAL REWARD TERM SUMMARY =====")
-    for name in term_names:
-        print(f"{name}:")
-        print("  sum_per_env:", reward_term_sums[name].detach().cpu().numpy())
-
 
     # close the simulator
     env.close()

@@ -61,7 +61,7 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-
+    #joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
     joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=[".*"], scale=7.5)
 
 
@@ -130,18 +130,18 @@ class RewardsCfg:
     # (2) Stay alive bonus
     alive = RewTerm(func=mdp.is_alive, weight=0.5)
     # (3) Reward for non-upright posture
-    upright = RewTerm(func=mdp.upright_posture_bonus, weight=0.1, params={"threshold": 0.3})
+    upright = RewTerm(func=mdp.upright_posture_bonus, weight=0.1, params={"threshold": 0.8})
     # (4) Reward for moving in the right direction
     move_to_target = RewTerm(
-        func=mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.8, "target_pos": (1000.0, 0.0, 0.0)}
+        func=mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.5, "target_pos": (1000.0, 0.0, 0.0)}
     )
     # (5) Penalty for large action commands
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.0005)
+    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.001)
     # (6) Penalty for energy consumption
-    energy = RewTerm(func=mdp.power_consumption, weight=-0.001, params={"gear_ratio": {".*": 2.0}})
+    energy = RewTerm(func=mdp.power_consumption, weight=-0.0001, params={"gear_ratio": {".*": 258.5}})
     # (7) Penalty for reaching close to joint limits
     joint_pos_limits = RewTerm(
-        func=mdp.joint_pos_limits_penalty_ratio, weight=-0.1, params={"threshold": 0.99, "gear_ratio": {".*": 2.0}}
+        func=mdp.joint_pos_limits_penalty_ratio, weight=-0.1, params={"threshold": 0.90, "gear_ratio": {".*": 258.5}}
     )
 
 
@@ -152,7 +152,7 @@ class TerminationsCfg:
     # (1) Terminate if the episode length is exceeded
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Terminate if the robot falls
-    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.01})
+    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.02})
 
 
 @configclass
