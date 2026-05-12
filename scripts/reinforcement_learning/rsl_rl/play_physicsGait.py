@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2026, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -53,21 +53,13 @@ sys.argv = [sys.argv[0]] + hydra_args
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-"""Check for installed RSL-RL version."""
-
-import importlib.metadata as metadata
-
-from packaging import version
-
-installed_version = metadata.version("rsl-rl-lib")
-
 """Rest everything follows."""
 
+import gymnasium as gym
 import os
 import time
-
-import gymnasium as gym
 import torch
+
 from rsl_rl.runners import DistillationRunner, OnPolicyRunner
 
 from isaaclab.envs import (
@@ -79,15 +71,9 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
+from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
-from isaaclab_rl.rsl_rl import (
-    RslRlBaseRunnerCfg,
-    RslRlVecEnvWrapper,
-    export_policy_as_jit,
-    export_policy_as_onnx,
-    handle_deprecated_rsl_rl_cfg,
-)
-from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
+from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
@@ -106,9 +92,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # override configurations with non-hydra CLI arguments
     agent_cfg: RslRlBaseRunnerCfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
-
-    # handle deprecated configurations
-    agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
 
     # set the environment seed
     # note: certain randomizations occur in the environment initialization so we set the seed here
@@ -169,38 +152,34 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # obtain the trained policy for inference
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
-    # export the trained policy to JIT and ONNX formats
-    export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
+    # extract the neural network module
+    # we do this in a try-except to maintain backwards compatibility.
+    try:
+        # version 2.3 onwards
+        policy_nn = runner.alg.policy
+    except AttributeError:
+        # version 2.2 and below
+        policy_nn = runner.alg.actor_critic
 
-    if version.parse(installed_version) >= version.parse("4.0.0"):
-        # use the new export functions for rsl-rl >= 4.0.0
-        runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")
-        runner.export_policy_to_onnx(path=export_model_dir, filename="policy.onnx")
+    # extract the normalizer
+    if hasattr(policy_nn, "actor_obs_normalizer"):
+        normalizer = policy_nn.actor_obs_normalizer
+    elif hasattr(policy_nn, "student_obs_normalizer"):
+        normalizer = policy_nn.student_obs_normalizer
     else:
-        # extract the neural network for rsl-rl < 4.0.0
-        if version.parse(installed_version) >= version.parse("2.3.0"):
-            policy_nn = runner.alg.policy
-        else:
-            policy_nn = runner.alg.actor_critic
+        normalizer = None
 
-        # extract the normalizer
-        if hasattr(policy_nn, "actor_obs_normalizer"):
-            normalizer = policy_nn.actor_obs_normalizer
-        elif hasattr(policy_nn, "student_obs_normalizer"):
-            normalizer = policy_nn.student_obs_normalizer
-        else:
-            normalizer = None
-
-        # export to JIT and ONNX
-        export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
-        export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
+    # export policy to onnx/jit
+    export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
+    export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
+    export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
 
     dt = env.unwrapped.step_dt
-    device = env.unwrapped.device
+    
     
     # ---------- NEW: setup for saving joint positions (radians) ----------
     # File where we'll store joint positions (not raw actions)
-    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_5-3-26_actiontest.csv"
+    actionFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_Rad_1-15-26_test.csv"
     commandFileName = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/HexapodRL_command_1-2-26_test.csv"
     # Number of joints we care about (first 8 from env 0)
     num_joints = 8
@@ -233,7 +212,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         print("[WARN] Couldn't print robot joint names:", e)
     
     # open file to track displacement
-    disp_log_path = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/sim_displacement_log_5-5-26_test.csv"
+    disp_log_path = "C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/sim_displacement_log_1-22-26_test.csv"
     os.makedirs(os.path.dirname(disp_log_path), exist_ok=True)
 
     with open(disp_log_path, "w", newline="") as d:
@@ -297,14 +276,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     log_f = open(logFileName, "a", newline="")
     writer = csv.writer(log_f)
     """
-    reward_sum_per_env = torch.zeros(env.num_envs, device=device, dtype=torch.float32)
-
-    rm = getattr(env.unwrapped, "reward_manager", None)
-    term_names = list(rm.active_terms) if rm is not None else []
-    reward_term_sums = {
-        name: torch.zeros(env.num_envs, device=device, dtype=torch.float32)
-        for name in term_names
-    }
 
     # reset environment
     obs = env.get_observations()
@@ -344,49 +315,28 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             """
 
             # env stepping
-            obs, rew, dones, _ = env.step(actions)
-            # reset recurrent states for episodes that have terminated
-            if version.parse(installed_version) >= version.parse("4.0.0"):
-                policy.reset(dones)
-            else:
-                policy_nn.reset(dones)
-            # obs, _, _, _ = env.step(actions)
-            # obs, rew, _, _ = env.step(actions)
+            obs, reward, _, _ = env.step(actions) #will return the computed reward as a float - set environments to ten and average across (or set higher)
+
+            #sum the rewards over the timesteps and average everything together at the end
 
             # Access the underlying robot in the scene
             robot = env.unwrapped.scene["robot"]  # adjust name if needed
 
-            reward_sum_per_env += rew
             
-            rm = getattr(env.unwrapped, "reward_manager", None)
-            if rm is not None:
-                step_reward_terms = rm._step_reward  # [num_envs, num_terms]
-
-                for term_idx, name in enumerate(term_names):
-                    reward_term_sums[name] += step_reward_terms[:, term_idx] * dt
-
             # Get the joint target positions that Isaac is actually using
             # This is a tensor of shape [num_envs, num_joints]
             #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
             # actual joint positions (env 0, first 8)
-            #act = robot.data.joint_pos[0, :num_joints].detach().cpu().numpy().tolist()
+            act = robot.data.joint_pos[0, :num_joints].detach().cpu().numpy().tolist()
 
-            #joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
+            joint_targets = robot.data.joint_pos_target[0, :8]  # env 0, first 8 joints
 
-            #joint_positions_list = [float(x.item()) for x in joint_targets]
-
-            #with open(actionFileName, "a", newline="") as f:
-            #    writer = csv.writer(f)
-            #    writer.writerow(joint_positions_list)
-            
-            # actual joint positions (env 0, first 8)
-            joint_positions = robot.data.joint_pos[0, :num_joints]
-            joint_positions_list = joint_positions.detach().cpu().numpy().tolist()
+            joint_positions_list = [float(x.item()) for x in joint_targets]
 
             with open(actionFileName, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(joint_positions_list)
-
+            
             # -----Added to track the displacement of robot --------------
             # ---- step / cycle bookkeeping (warmup-aware) ----
             step = timestep  # raw sim step (includes warmup)
@@ -432,14 +382,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
-
-    print("\n===== REWARD SUMMARY =====")
-    print("reward_sum_per_env:", reward_sum_per_env.detach().cpu().numpy())
-    print("\n===== INDIVIDUAL REWARD TERM SUMMARY =====")
-    for name in term_names:
-        print(f"{name}:")
-        print("  sum_per_env:", reward_term_sums[name].detach().cpu().numpy())
-
 
     # close the simulator
     env.close()

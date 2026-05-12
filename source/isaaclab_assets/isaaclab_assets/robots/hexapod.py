@@ -32,7 +32,7 @@ HEXAPOD_CFG = ArticulationCfg(
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True,
             solver_position_iteration_count=4,
-            solver_velocity_iteration_count=0,
+            solver_velocity_iteration_count=1,
             #sleep_threshold=0.1,
             #stabilization_threshold=0.01, #was 0.001 -- check this value
         ),
@@ -45,6 +45,14 @@ HEXAPOD_CFG = ArticulationCfg(
             #".*": 0.0,
             "FrontLink": 0.0,
             "BackLink":0.0,
+
+            #"MiddleLeft":0.0,
+            #"MiddleRight": 0.0,
+            #"BackLeft": 0.0,
+            #"BackRight": 0.0,
+            #"FrontLeft": 0.0,
+            #"FrontRight": 0.0,
+
             "MiddleLeft":-0.47,
             "MiddleRight": -0.47,
             "BackLeft": -0.47,
@@ -66,10 +74,10 @@ HEXAPOD_CFG = ArticulationCfg(
     actuators={
         "all_joints": ImplicitActuatorCfg(
             joint_names_expr=[".*"],
-            stiffness = 80.0,      # record joint position target and joint position to verify this - compare to hardware, compare the errors
-            damping = 4.0,          # experimentally find this
-            velocity_limit_sim = 5.0    # max velocity of servos is 5.96 rad/s at 11.1 V
-            #effort_limit_sim = 45.0, #consider removing
+            stiffness = 37,      # record joint position target and joint position to verify this - compare to hardware, compare the errors
+            damping = 0.32,      #0.28    # experimentally find this
+            velocity_limit_sim = 5.5,    # max velocity of servos is 5.96 rad/s at 11.1 V
+            effort_limit_sim = 1.3, #consider removing
         ),
     },
 )
