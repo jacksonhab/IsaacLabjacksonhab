@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\jrh6552\\\\Documents\\\\GitHub\\\\IsaacLabjacksonhab\" -Force)",
+      "Bash(Select-Object Name)",
+      "Bash(pip show *)"
+    ]
+  }
+}

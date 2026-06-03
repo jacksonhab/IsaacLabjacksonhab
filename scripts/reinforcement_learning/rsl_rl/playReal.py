@@ -101,6 +101,13 @@ sys.argv = [sys.argv[0]] + hydra_args
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
+"""Check for installed RSL-RL version."""
+
+import importlib.metadata as metadata
+from packaging import version
+
+installed_version = metadata.version("rsl-rl-lib")
+
 """Rest everything follows."""
 
 import gymnasium as gym
@@ -119,9 +126,15 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
-from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
+from isaaclab_rl.rsl_rl import (
+    RslRlBaseRunnerCfg,
+    RslRlVecEnvWrapper,
+    export_policy_as_jit,
+    export_policy_as_onnx,
+    handle_deprecated_rsl_rl_cfg,
+)
+from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
@@ -216,6 +229,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg: RslRlBaseRunnerCfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
 
+    # handle deprecated configurations (strips params unsupported by installed rsl-rl version)
+    agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
+
     # set the environment seed
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
@@ -278,6 +294,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         robot = env.unwrapped.scene["robot"]
         if hasattr(robot.data, "joint_names"):
             print("[INFO] robot joint names (first 8):", robot.data.joint_names[:8])
+        try:
+            masses = robot.root_physx_view.get_masses()  # [num_envs, num_bodies]
+            total_mass = masses[0].sum().item()
+            print(f"[INFO] total robot mass (kg): {total_mass:.4f}")
+            per_body = dict(zip(robot.data.body_names, [round(m, 4) for m in masses[0].tolist()]))
+            print(f"[INFO] per-body masses (kg): {per_body}")
+        except Exception as mass_err:
+            print(f"[WARN] Could not read robot masses: {mass_err}")
     except Exception as e:
         print("[WARN] Couldn't print robot joint names:", e)
 
@@ -323,27 +347,32 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
         else:
             raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
+        assert resume_path is not None
         runner.load(resume_path)
 
         # obtain the trained policy for inference
         policy = runner.get_inference_policy(device=env.unwrapped.device)
 
-        # export policy to onnx/jit
-        try:
-            policy_nn = runner.alg.policy
-        except AttributeError:
-            policy_nn = runner.alg.actor_critic
-
-        if hasattr(policy_nn, "actor_obs_normalizer"):
-            normalizer = policy_nn.actor_obs_normalizer
-        elif hasattr(policy_nn, "student_obs_normalizer"):
-            normalizer = policy_nn.student_obs_normalizer
-        else:
-            normalizer = None
-
+        # export policy — version-conditional, matching play.py
         export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
-        export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
-        export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
+        if version.parse(installed_version) >= version.parse("4.0.0"):
+            runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")  # type: ignore[union-attr]
+            runner.export_policy_to_onnx(path=export_model_dir, filename="policy.onnx")  # type: ignore[union-attr]
+        else:
+            if version.parse(installed_version) >= version.parse("2.3.0"):
+                policy_nn = runner.alg.policy
+            else:
+                policy_nn = runner.alg.actor_critic  # type: ignore[union-attr]
+
+            if hasattr(policy_nn, "actor_obs_normalizer"):
+                normalizer = policy_nn.actor_obs_normalizer
+            elif hasattr(policy_nn, "student_obs_normalizer"):
+                normalizer = policy_nn.student_obs_normalizer
+            else:
+                normalizer = None
+
+            export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
+            export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
     # ---------------------------------------------------------------
 
     dt = env.unwrapped.step_dt
@@ -359,7 +388,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # Default joint positions in radians:
     # joint 0,1 -> 0.0 rad; joints 2..7 -> 0.35 rad
     # This will be used as q_default in: q = q_default + 0.5 * action
-    q_default_list = [0.0, 0.0] + [0.35] * (num_joints - 2)
+    q_default_list = [0.0, 0.0] + [-0.47] * (num_joints - 2)
 
     # Create/overwrite file and write header once
     os.makedirs(os.path.dirname(actionFileName), exist_ok=True)
@@ -489,6 +518,19 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             with open(actionFileName, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(joint_positions_list)
+
+            # print applied torques and base velocity every 20 steps
+            if timestep % 20 == 0:
+                applied_torques = robot.data.applied_torque[0, :num_joints].detach().cpu().numpy()
+                joint_names_short = robot.data.joint_names[:num_joints]
+                print(f"[step {timestep:5d}] applied torques (N·m): "
+                      + "  ".join(f"{n}={t:+.3f}" for n, t in zip(joint_names_short, applied_torques)))
+                # root_lin_vel_b is velocity in the robot's base frame (x=forward, y=lateral)
+                vel_b = robot.data.root_lin_vel_b[0].detach().cpu().numpy()
+                ang_vel_w = robot.data.root_ang_vel_w[0].detach().cpu().numpy()
+                print(f"[step {timestep:5d}] base velocity (body frame): "
+                      f"vx={vel_b[0]:+.4f} m/s  vy={vel_b[1]:+.4f} m/s  vz={vel_b[2]:+.4f} m/s"
+                      f"  yaw_rate={ang_vel_w[2]:+.4f} rad/s")
 
             if timestep >= warmup_steps:
                 reward_sum_per_env += rew

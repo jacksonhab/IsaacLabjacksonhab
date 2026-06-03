@@ -61,3 +61,27 @@ gym.register(
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_rough_ppo_cfg.yaml",
     },
 )
+
+# ---------------------------------------------------------------------------
+# Mimic + RL environments
+# ---------------------------------------------------------------------------
+
+gym.register(
+    id="Isaac-Velocity-Flat-Hexapod-Mimic-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.hexapod_mimic_env_cfg:HexapodMimicEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_mimic_cfg:HexapodMimicPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-Velocity-Flat-Hexapod-Mimic-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.hexapod_mimic_env_cfg:HexapodMimicEnvCfg_PLAY",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_mimic_cfg:HexapodMimicPPORunnerCfg",
+    },
+)

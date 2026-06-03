@@ -3,9 +3,19 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import SceneEntityCfg  # noqa: F401 -- used in commented per-leg air time params
 from isaaclab.utils import configclass
 
 from .rough_env_cfg import HexapodRoughEnvCfg
+from .hexapod_obs_cfg import HexapodFlatObservationsCfg
+from .hexapod_rewards import (
+    feet_air_time_per_leg,  # noqa: F401 -- reverted to fixed-threshold; kept for reference
+    track_ang_vel_z_exp_deadzone,  # noqa: F401 -- commented alternative
+    track_ang_vel_z_exp_episode_avg,  # noqa: F401 -- caused entropy divergence (1/N vanishing gradient); kept for reference
+    track_ang_vel_z_exp_ema,
+    # track_ang_vel_z_exp_moving_avg,  # fixed-window alternative; import if switching to it
+)
 #import os
 import math
 
@@ -23,15 +33,14 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         self.events.add_base_mass.params["mass_distribution_params"] = (0.0, 0.0) #just added this to see if (-5.0, 5.0) is the problem
         self.events.base_com.params["asset_cfg"].body_names="CenterLink"
         #self.events.base_com.params["asset_cfg"].body_names=["CenterLink", "BackLink", "FrontLink"]
-        self.events.base_com.params["com_range"]: {
-            "x": (0.03,0.03),
+        self.events.base_com.params["com_range"] = {
+            "x": (0.0,0.0),
             "y": (0.0,0.0),
             "z": (0.0,0.0),
         }
-        self.events.physics_material.params["static_friction_range"]: (0.8, 0.8)
-        self.events.physics_material.params["dynamic_friction_range"]: (0.5, 0.5)
-        #self.scene.terrain.physics_material.static_friction= 0.8
-        #self.scene.terrain.physics_material.dynamic_friction= 0.6
+        self.events.physics_material.params["static_friction_range"] = (0.5, 0.6)
+        self.events.physics_material.params["dynamic_friction_range"] = (0.35, 0.45)
+
 
         self.events.base_external_force_torque.params["asset_cfg"].body_names = "CenterLink"
 
@@ -40,6 +49,8 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         self.rewards.undesired_contacts.params["sensor_cfg"].body_names=["CenterLink", "BackLink", "FrontLink"]
 
         self.terminations.base_contact.params["sensor_cfg"].body_names="CenterLink"
+        self.events.push_robot = None
+        self.events.base_external_force_torque = None
 
         #reset position:
         self.events.reset_base.params = {
@@ -50,7 +61,7 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
                 # include "z" here if your event supports it; e.g., ("z": (0.18, 0.22))
             },
             "velocity_range": {
-                "x":    (-0.01, 0.01),
+                "x":    (0.0, 0.0),
                 "y":    (0.0, 0.0),
                 "z":    (0.0, 0.0),
                 "roll": (0.0,  0.0),
@@ -61,8 +72,8 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
 
         # override velocity ranges -> based on actual velocities
         # max velocity of the physics gaits is 0.14 m/s - so these values should be in that range
-        self.commands.base_velocity.ranges.lin_vel_y=(0.07,0.07)
-        self.commands.base_velocity.ranges.lin_vel_x=(0.0,0.0) # 0.16 m/s for six legged gaits
+        self.commands.base_velocity.ranges.lin_vel_y=(0.0,0.0)
+        self.commands.base_velocity.ranges.lin_vel_x=(0.16,0.16) # 0.16 m/s for six legged gaits
         self.commands.base_velocity.ranges.ang_vel_z=(0.0,0.0)
         self.commands.base_velocity.debug_vis = False
 
@@ -70,8 +81,25 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         self.rewards.track_lin_vel_xy_exp.weight = 1.0
         self.rewards.track_lin_vel_xy_exp.params["std"] = math.sqrt(0.25)*0.2
 
-        self.rewards.track_ang_vel_z_exp.weight = 0.4 #trying to keep it a little more straight
-        self.rewards.track_ang_vel_z_exp.params["std"] = math.sqrt(0.25)*0.15
+        # Penalise the cumulative episode-average yaw rate rather than the instantaneous value.
+        # No gait-cycle timescale is hardcoded: cumsum / steps_elapsed converges naturally.
+        # Sinusoidal undulation (zero net drift) -> mean stays near zero -> full reward.
+        # Sustained turning -> mean shifts away from command -> penalty.
+        self.rewards.track_ang_vel_z_exp.weight = 0.45
+        # self.rewards.track_ang_vel_z_exp.weight = 0.8  # original -- instantaneous, no averaging
+        # self.rewards.track_ang_vel_z_exp.params["std"] = math.sqrt(0.25)*0.15  # original
+        # self.rewards.track_ang_vel_z_exp.func = track_ang_vel_z_exp_deadzone    # deadzone version
+        # self.rewards.track_ang_vel_z_exp.params = {"std": math.sqrt(0.25)*0.15, "command_name": "base_velocity", "deadzone": 1.6}
+        # self.rewards.track_ang_vel_z_exp.func = track_ang_vel_z_exp_moving_avg  # fixed-window version
+        # self.rewards.track_ang_vel_z_exp.params = {"std": math.sqrt(0.25)*0.15, "command_name": "base_velocity", "window_steps": 50}
+        # self.rewards.track_ang_vel_z_exp.func = track_ang_vel_z_exp_episode_avg  # caused entropy divergence (1/N vanishing gradient)
+        # self.rewards.track_ang_vel_z_exp.params = {"std": math.sqrt(0.25)*0.15, "command_name": "base_velocity"}
+        self.rewards.track_ang_vel_z_exp.func = track_ang_vel_z_exp_ema
+        self.rewards.track_ang_vel_z_exp.params = {
+            "std": math.sqrt(0.25) * 0.15,
+            "command_name": "base_velocity",
+            "alpha": 0.98,  # ~33-step effective window (~0.66 s at 0.02 s dt); tune if undulation still penalised
+        }
 
         # Penalties
 
@@ -80,17 +108,21 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         #self.rewards.base_yaw_drift_l2.weight = -0.12
 
         #standard
-        self.rewards.dof_torques_l2.weight = -10.5e-5 #was -2.5e-5
+        self.rewards.dof_torques_l2.weight = -5.0e-5 #was -2.5e-5s
 
-        self.rewards.feet_air_time.weight = 0.125 #was 0.22
-        self.rewards.feet_air_time.params["threshold"] = 0.1  #rewarding a duty cycle of 2/3 -- trying to also get use of six legs
+        # Fixed-threshold air time: reward each leg for staying airborne >= threshold seconds.
+        # Per-leg duty-cycle version produced only 0.027 sum (too weak to shape gait) -- reverted.
+        # self.rewards.feet_air_time.func = feet_air_time_per_leg  # per-leg version; kept for reference
+        # self.rewards.feet_air_time.params = {"command_name": "base_velocity", "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["MiddleLeft","MiddleRight","BackLeft","BackRight","FrontLeft","FrontRight"]), "target_ratio": 0.9}
+        self.rewards.feet_air_time.weight = 0.5
+        self.rewards.feet_air_time.params["threshold"] = 0.1  # 0.1 s; shuffling air phases are typically <0.02 s
         
         self.rewards.dof_pos_limits.weight = -1.0
-        self.rewards.dof_acc_l2.weight= 0.0 #-8.5e-7 #new
+        self.rewards.dof_acc_l2.weight= -8.5e-14 
         self.rewards.ang_vel_xy_l2.weight = 0.0 #-0.00000001
         self.rewards.undesired_contacts.weight = -1.0
         self.rewards.lin_vel_z_l2.weight = -0.00000001 #-0.0001
-        self.rewards.action_rate_l2.weight = -1.0e-12 #-0.0000001 # tune this
+        self.rewards.action_rate_l2.weight = -1.0e-4 #-0.0000001 # tune this
 
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"
@@ -99,23 +131,19 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
 
-        # override to make observations only previous actions -- open loop gait
-        self.observations.policy.height_scan = None
-        self.observations.policy.base_lin_vel = None
-        self.observations.policy.base_ang_vel = None    #include
-        self.observations.policy.projected_gravity = None   #include in future
-        self.observations.policy.joint_pos = None   #include
-        self.observations.policy.joint_vel = None   #include
+        # Asymmetric actor-critic observations: actor uses only hardware-observable quantities,
+        # critic additionally sees ground-truth base_lin_vel during training.
+        self.observations = HexapodFlatObservationsCfg()  # type: ignore[assignment]
 
-        self.observations.policy.actions.history_length = 14 # was 5 @ 12_12_25 10-20-22
+        # self.observations.policy.actions.history_length = 3 # 14 # was 5 @ 12_12_25 10-20-22
         
         # no terrain curriculum
         self.curriculum.terrain_levels = None
 
         # camera settings
         #self.viewer.eye = (-0.5, 0.0, 0.1)
-        self.viewer.eye = (0.0, 0.5, 0.1)
-        self.viewer.lookat = (0.0, 0.5, 0.0)
+        self.viewer.eye = (0.5, 0.0, 1.0)
+        self.viewer.lookat = (0.5, 0.0, 0.0)
         self.viewer.origin_type = "asset_root"
         #self.viewer.origin_type = "world"
         self.viewer.asset_name = "robot"
@@ -137,19 +165,19 @@ class HexapodFlatEnvCfg_PLAY(HexapodFlatEnvCfg):
         self.events.push_robot = None
 
         # Play on the max velocity
-        self.commands.base_velocity.ranges.lin_vel_x=(0.0,0.0)
+        self.commands.base_velocity.ranges.lin_vel_x=(0.16,0.16)
         self.commands.base_velocity.ranges.ang_vel_z=(0.0,0.0)
-        self.commands.base_velocity.ranges.lin_vel_y=(0.07,0.07)
+        self.commands.base_velocity.ranges.lin_vel_y=(0.0,0.0)
 
         self.commands.base_velocity.resampling_time_range = (1000.0, 1000.0)
 
-        self.events.physics_material.params["static_friction_range"]: (0.8, 0.8)
-        self.events.physics_material.params["dynamic_friction_range"]: (0.6, 0.6)
+        self.events.physics_material.params["static_friction_range"] = (0.5, 0.6)
+        self.events.physics_material.params["dynamic_friction_range"] = (0.35, 0.45)
         #self.scene.terrain.physics_material.static_friction= 0.8
         #self.scene.terrain.physics_material.dynamic_friction= 0.6
 
-        # camera settings
-        self.viewer.eye = (0.0, 0.5, 1.0) #overhead camera
-        self.viewer.lookat = (0.0, 0.5, 0.00)
-        self.viewer.origin_type = "world"
+        # camera settings -- follow robot from behind and above
+        self.viewer.eye = (-1.0, 0.0, 0.5)
+        self.viewer.lookat = (0.0, 0.0, 0.0)
+        self.viewer.origin_type = "asset_root"
         self.viewer.asset_name = "robot"

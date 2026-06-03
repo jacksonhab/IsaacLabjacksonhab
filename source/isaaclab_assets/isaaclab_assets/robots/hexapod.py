@@ -72,12 +72,28 @@ HEXAPOD_CFG = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor = 0.9,
     actuators={
-        "all_joints": ImplicitActuatorCfg(
-            joint_names_expr=[".*"],
-            stiffness = 37,      # record joint position target and joint position to verify this - compare to hardware, compare the errors
-            damping = 0.32,      #0.28    # experimentally find this
-            velocity_limit_sim = 5.5,    # max velocity of servos is 5.96 rad/s at 11.1 V
-            effort_limit_sim = 1.3, #consider removing
+        # Spine joints: sinusoidal body undulation sustains high torque at wave peaks against body inertia.
+        # Lower stiffness reduces peak torque demand (at stiffness=40, error=0.15 rad before saturation vs 0.075 at 80).
+        # The real servo's internal firmware handles gravity loading better than a pure PD controller.
+        "body_joints": ImplicitActuatorCfg(
+            joint_names_expr=["FrontLink", "BackLink"],
+            stiffness = 40,
+            # stiffness = 80,   # too stiff -- small tracking lag generates huge torques; consistently saturates
+            damping = 0.4,
+            velocity_limit_sim = 15.0,   # raised: if sin wave step changes require >5.5 rad/s, velocity cap accumulates lag → torque saturates regardless of effort limit
+            # velocity_limit_sim = 5.5,  # original -- may be binding constraint for body undulation
+            effort_limit_sim = 4.5,
+        ),
+        # Leg joints: intermittent ground contact, shorter duration at peak torque
+        "leg_joints": ImplicitActuatorCfg(
+            joint_names_expr=["MiddleLeft", "MiddleRight", "BackLeft", "BackRight", "FrontLeft", "FrontRight"],
+            stiffness = 80,
+            # stiffness = 37,   # original -- too low: max correctable error = 1.4/37 = 0.038 rad before torque saturation
+            damping = 0.9,
+            # damping = 0.32,   # original
+            velocity_limit_sim = 6.0,
+            effort_limit_sim = 4.5,
+            # effort_limit_sim = 1.4,  # XL430-W250-T rated stall torque at 12V (physical spec)
         ),
     },
 )
