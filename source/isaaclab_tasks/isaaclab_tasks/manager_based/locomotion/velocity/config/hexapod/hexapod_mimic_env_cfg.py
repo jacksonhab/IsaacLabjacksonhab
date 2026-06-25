@@ -52,8 +52,7 @@ from .hexapod_mimic_rewards import joint_pos_imitation
 
 # Path to a reference gait CSV.  Set to None to use the generated tripod gait.
 MIMIC_CSV_PATH: str | None = (
-    "C:/Users/jrh6552/Hexapod/forward hexapod/forward hexapod"
-    "/TripodPhaseData/DiGaits/Sim Gaits/forward3_lleg30_amp65_sim.csv"
+    "hexapod-assets/Sim Gaits/forward3_lleg30_amp65_sim.csv"
 )
 # Duration of one gait cycle in the reference (seconds).  Overridden by CSV
 # if the CSV contains a "time" column spanning exactly one cycle.
@@ -79,7 +78,7 @@ MIMIC_JOINT_SIGMA: float = 0.4   # per-joint sigma; ~±23° tolerance before rew
 # 0.0 = pure imitation (no RL signal at all during phase 1).
 # 0.1 = RL rewards at 10% — keeps a weak locomotion signal alongside imitation.
 # 1.0 = no scaling (original behaviour).
-MIMIC_RL_SCALE: float = 0.1
+MIMIC_RL_SCALE: float = 1.0
 
 # Reward terms to scale down during the imitation phase.
 # Safety/limit terms (dof_pos_limits, undesired_contacts) are intentionally
@@ -88,8 +87,7 @@ _RL_REWARD_TERMS: list[str] = [
     "track_lin_vel_xy_exp",
     "track_ang_vel_z_exp",
     "feet_air_time",
-    # action_rate_l2 intentionally excluded: keep at full weight during imitation
-    # to prevent the policy from learning to output arbitrarily large noisy actions.
+    "action_rate_l2",
     "dof_torques_l2",
     "dof_acc_l2",
     "ang_vel_xy_l2",

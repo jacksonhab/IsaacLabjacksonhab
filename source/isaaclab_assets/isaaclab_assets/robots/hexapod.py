@@ -19,7 +19,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 HEXAPOD_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"C:/Users/jrh6552/Hexapod/IsaacLab/Hexapod_Flattened.usd",
+        usd_path=f"hexapod-assets/USD/Hexapod_Flattened.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=1.0,

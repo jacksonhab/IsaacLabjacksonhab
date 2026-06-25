@@ -73,7 +73,7 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         # override velocity ranges -> based on actual velocities
         # max velocity of the physics gaits is 0.14 m/s - so these values should be in that range
         self.commands.base_velocity.ranges.lin_vel_y=(0.0,0.0)
-        self.commands.base_velocity.ranges.lin_vel_x=(0.16,0.16) # 0.16 m/s for six legged gaits
+        self.commands.base_velocity.ranges.lin_vel_x=(0.2,0.2) # 0.16 m/s for six legged gaits
         self.commands.base_velocity.ranges.ang_vel_z=(0.0,0.0)
         self.commands.base_velocity.debug_vis = False
 
@@ -118,11 +118,11 @@ class HexapodFlatEnvCfg(HexapodRoughEnvCfg):
         self.rewards.feet_air_time.params["threshold"] = 0.1  # 0.1 s; shuffling air phases are typically <0.02 s
         
         self.rewards.dof_pos_limits.weight = -1.0
-        self.rewards.dof_acc_l2.weight= -8.5e-14 
+        self.rewards.dof_acc_l2.weight= -8.5e-14
         self.rewards.ang_vel_xy_l2.weight = 0.0 #-0.00000001
         self.rewards.undesired_contacts.weight = -1.0
         self.rewards.lin_vel_z_l2.weight = -0.00000001 #-0.0001
-        self.rewards.action_rate_l2.weight = -1.0e-4 #-0.0000001 # tune this
+        self.rewards.action_rate_l2.weight = -2.5e-2
 
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"

@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Isaac Lab (v2.3.2) is a GPU-accelerated robotics simulation framework built on NVIDIA Isaac Sim (4.5/5.0/5.1). This fork has been customized for hexapod locomotion research, adding a 6-legged robot (LiBR Hexapod) with flat-terrain RL training configurations.
+Isaac Lab (v2.3.2) is a GPU-accelerated robotics simulation framework built on NVIDIA Isaac Sim (4.5/5.0/5.1). This fork adds a 6-legged robot (LiBR Hexapod) with flat-terrain RL training configurations including an imitation-learning warm-up system.
 
 **Key runtime requirements:**
 
 - Isaac Sim 4.5+ installed and on PATH (or at `_isaac_sim` symlink)
 - Python 3.11, PyTorch 2.7.0 + CUDA 12.8
-- Hexapod USD model at `C:/Users/jrh6552/Hexapod/IsaacLab/Hexapod_Flattened.usd`
+- Hexapod USD model at `hexapod-assets/USD/Hexapod_Flattened.usd` (repo-relative)
 - Data output directory at `C:/Users/jrh6552/Hexapod/IsaacLab/Position Files/`
 
 ## Common Commands
@@ -26,6 +26,15 @@ isaaclab.bat -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velo
 
 :: Play/evaluate a checkpoint (logs joint positions to CSV)
 isaaclab.bat -p scripts/reinforcement_learning/rsl_rl/play.py --task Isaac-Velocity-Flat-Hexapod-Play-v0 --num_envs 1
+
+:: Train hexapod with imitation warm-up then RL (two-phase, single run)
+isaaclab.bat -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Flat-Hexapod-Mimic-v0 --num_envs 4096
+
+:: Play/evaluate a mimic checkpoint
+isaaclab.bat -p scripts/reinforcement_learning/rsl_rl/play.py --task Isaac-Velocity-Flat-Hexapod-Mimic-Play-v0 --num_envs 1
+
+:: Fine-tune a mimic checkpoint under the flat RL env (compatible observation space)
+isaaclab.bat -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Flat-Hexapod-v0 --checkpoint <path/to/mimic/model.pt>
 
 :: Play open-loop gait from CSV (compare against RL policy rewards)
 isaaclab.bat -p scripts/reinforcement_learning/rsl_rl/playReal.py --task Isaac-Velocity-Flat-Hexapod-Play-v0 --num_envs 1 --gait_csv <path_to_csv> --gait_mode pos --gait_dt <seconds_per_row> --warmup_time 1.0
@@ -56,6 +65,9 @@ Training logs save to `logs/rsl_rl/<experiment_name>/<timestamp>/`.
 ## Repository Structure
 
 ```text
+hexapod-assets/              # Hexapod USD model and reference gait CSVs (repo-tracked)
+  USD/Hexapod_Flattened.usd
+  Sim Gaits/forward3_lleg30_amp65_sim.csv
 source/
   isaaclab/          # Core framework: env managers, sensors, controllers, terrain
   isaaclab_assets/   # Robot and sensor config dataclasses (ArticulationCfg)
@@ -75,7 +87,9 @@ Tasks use a layered config inheritance pattern. Everything is a Python dataclass
 LocomotionVelocityRoughEnvCfg          # source/isaaclab_tasks/.../velocity_env_cfg.py
   └── HexapodRoughEnvCfg               # config/hexapod/rough_env_cfg.py
         └── HexapodFlatEnvCfg          # config/hexapod/flat_env_cfg.py
-              └── HexapodFlatEnvCfg_PLAY
+              ├── HexapodFlatEnvCfg_PLAY
+              └── HexapodMimicEnvCfg   # config/hexapod/hexapod_mimic_env_cfg.py
+                    └── HexapodMimicEnvCfg_PLAY
 ```
 
 The environment config holds nested sub-configs for:
@@ -94,7 +108,7 @@ The gym environment is instantiated by `ManagerBasedRLEnv` using these configs. 
 
 **Robot asset:** `source/isaaclab_assets/isaaclab_assets/robots/hexapod.py`
 
-- USD at `C:/Users/jrh6552/Hexapod/IsaacLab/Hexapod_Flattened.usd`
+- USD at `hexapod-assets/USD/Hexapod_Flattened.usd` (repo-relative path)
 - 8 joints total: `FrontLink`, `BackLink` (spine), + 6 leg joints (`MiddleLeft/Right`, `BackLeft/Right`, `FrontLeft/Right`)
 - **Two actuator groups** (split because spine and legs have different loading profiles):
   - `body_joints` (FrontLink, BackLink): stiffness=40, damping=0.4, velocity_limit=15.0 rad/s, effort_limit=4.5 N·m
@@ -109,22 +123,53 @@ The gym environment is instantiated by `ManagerBasedRLEnv` using these configs. 
 
 - `Isaac-Velocity-Flat-Hexapod-v0` / `Isaac-Velocity-Flat-Hexapod-Play-v0`
 - `Isaac-Velocity-Rough-Hexapod-v0` / `Isaac-Velocity-Rough-Hexapod-Play-v0`
+- `Isaac-Velocity-Flat-Hexapod-Mimic-v0` / `Isaac-Velocity-Flat-Hexapod-Mimic-Play-v0`
 
 **Flat env key settings** (`flat_env_cfg.py`):
 
-- Velocity target: lin_vel_x=(0.1, 0.1) m/s, y=0, yaw=0 (forward-only gait)
+- Velocity target: lin_vel_x=(0.2, 0.2) m/s training / (0.16, 0.16) play, y=0, yaw=0 (forward-only gait)
 - No height scanner, no terrain curriculum, flat plane terrain
 - Friction: static=(0.5, 0.6), dynamic=(0.35, 0.45) — tuned for PLA on wood
 - Asymmetric actor-critic observations: actor sees proprioceptive-only (hardware-available), critic adds ground-truth base_lin_vel during training
 - `obs_groups = {"policy": ["policy"], "critic": ["critic"]}` routes groups to actor/critic in PPO runner
 - Action scale effectively 0.5: `q = q_default + 0.5 * action`
 - `q_default` for legs: -0.47 rad (matches init_state); spine joints: 0.0 rad
+- `track_ang_vel_z_exp` uses EMA (exponential moving average, alpha=0.98, ~33-step window) rather than instantaneous yaw rate — sinusoidal undulation produces zero net drift so the EMA reward stays near 1.0, while sustained turning shifts the mean and gets penalized
 
 **Hexapod-specific files in config folder:**
 
 - `hexapod_obs_cfg.py` — `HexapodFlatObservationsCfg` with separate `PolicyCfg` (no base_lin_vel) and `CriticCfg` (adds base_lin_vel) observation groups
 - `hexapod_rewards.py` — custom reward functions:
-  - `feet_air_time_per_leg`: compares each leg's air time to its own previous contact time (duty-cycle aware), replacing the fixed global threshold in the standard `feet_air_time`. Uses `target_ratio` (default 0.67) so legs with longer contact phases need proportionally longer air phases. Only activates after a leg has completed its first contact phase.
+  - `feet_air_time_per_leg`: per-leg duty-cycle aware air time (kept for reference; reverted to fixed-threshold `feet_air_time` in the active config because it produced too weak a signal)
+  - `track_ang_vel_z_exp_ema`: EMA-smoothed yaw tracking reward (currently active)
+- `hexapod_mimic_env_cfg.py` — `HexapodMimicEnvCfg` and `HexapodMimicEnvCfg_PLAY`; see **Mimic System** below
+- `hexapod_mimic_rewards.py` — `joint_pos_imitation` and `spine_pos_imitation` reward functions; `MotionReference` is built lazily and cached in a module-level dict keyed by `(csv_path, gait_period, col_order)` so it is only constructed once across all envs
+- `hexapod_mimic_motion.py` — `MotionReference` class: loads a reference gait from CSV (headerless or headered) or falls back to a built-in sinusoidal tripod gait; resamples to a 200-point uniform phase grid; transfers to GPU lazily on first `get_reference()` call
+- `agents/rsl_rl_ppo_mimic_cfg.py` — `HexapodMimicPPORunnerCfg`: 3000 total iterations, `init_noise_std=0.25`, `entropy_coef=0.005`, logs to `logs/rsl_rl/hexapod_mimic/`
+
+**Mimic System** (`hexapod_mimic_env_cfg.py`, `hexapod_mimic_rewards.py`, `hexapod_mimic_motion.py`):
+
+Two-phase training in a single run controlled by curriculum terms (`modify_reward_weight`):
+
+- **Phase 1 — Imitation** (iterations 0–799, `MIMIC_ITERATIONS=800`): `joint_pos_imitation` reward active at weight 3.0; RL rewards currently at full weight (`MIMIC_RL_SCALE=1.0`) so imitation and RL compete from the start. Safety/limit rewards (`dof_pos_limits`, `undesired_contacts`) stay at full weight throughout.
+- **Phase 2 — RL polish** (iterations 800–3000): curriculum sets imitation weight to 0.0 and restores all RL reward weights at `MIMIC_DECAY_STEPS = 800 × 48 = 38 400` env steps. Checkpoint is compatible with `Isaac-Velocity-Flat-Hexapod-v0` (identical observation space).
+
+`joint_pos_imitation` reward: per-joint Gaussian `exp(-(q-q_ref)² / σ²)` averaged across all 8 joints. Per-joint mean (not sum) is critical — summing would let the two high-amplitude spine joints drown the gradient for the 6 leg joints. Default `joint_sigma=0.4` rad (~±23°). Phase is computed as `(episode_elapsed_time % gait_period) / gait_period`.
+
+On first call, `joint_pos_imitation` validates that `asset.data.joint_names` matches the expected Sim DOF order and auto-corrects with a reorder index if they differ (logs a warning). This makes the reward robust to Isaac Lab version changes that might alter joint sorting.
+
+`MotionReference` joint ordering (Sim DOF order, matches `asset.data.joint_pos` and play.py CSVs):
+
+```text
+0 BackLink  1 FrontLink  2 MiddleLeft  3 MiddleRight  4 BackLeft  5 BackRight  6 FrontLeft  7 FrontRight
+```
+
+Tripod A (swing first half-cycle): indices 3, 4, 6 (MiddleRight, BackLeft, FrontLeft).
+Tripod B (swing second half-cycle): indices 2, 5, 7 (MiddleLeft, BackRight, FrontRight).
+
+`MIMIC_CSV_PATH` defaults to `hexapod-assets/Sim Gaits/forward3_lleg30_amp65_sim.csv`. If the file is absent, the built-in sinusoidal tripod gait is used automatically — no CSV needed to start training.
+
+PPO tuning rationale for mimic: `init_noise_std=0.25` (down from default 1.0) prevents the policy from getting imitation reward "for free" by saturating joints at their limits, which causes value-function divergence. `entropy_coef=0.005` (down from 0.01) allows action std to decrease once the gradient supports deterministic tracking.
 
 **playReal.py** (`scripts/reinforcement_learning/rsl_rl/playReal.py`):
 

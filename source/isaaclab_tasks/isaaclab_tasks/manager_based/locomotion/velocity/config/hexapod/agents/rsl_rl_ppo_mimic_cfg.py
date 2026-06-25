@@ -37,13 +37,5 @@ class HexapodMimicPPORunnerCfg(HexapodFlatPPORunnerCfg):
         self.experiment_name = "hexapod_mimic"
         self.save_interval = 50
 
-        # Lower initial action noise so the policy is forced to learn actual joint
-        # control rather than outputting huge random actions that saturate at limits.
-        # High init_noise_std (1.0) allows the policy to get imitation reward "for free"
-        # by saturating joints near the reference — this causes VF divergence.
-        self.policy.init_noise_std = 0.25
-
-        # Reduce entropy coefficient to allow action std to decrease during imitation.
-        # Default 0.01 kept the policy at std=14+ for 600 iterations; 0.005 lets the
-        # policy collapse to more deterministic behavior when the gradient supports it.
-        self.algorithm.entropy_coef = 0.005
+        # init_noise_std and entropy_coef left at parent defaults (1.0 and 0.01)
+        # to match the May 2026 working run configuration.
